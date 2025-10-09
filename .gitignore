@@ -1,0 +1,10 @@
+node_modules/
+package-lock.json
+.DS_Store
+*.log
+.vscode/
+.eslintrc.json
+package.json
+QUICK_START.md
+DEV_GUIDE.md
+

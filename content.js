@@ -119,7 +119,8 @@
              color:#fff;caret-color:#fff;padding:10px;font:12px/1.4 ui-monospace;resize:none;outline:none;"></textarea>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
       <div style="display:flex;gap:6px;">
-        <button id="gc-check" class="gc-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 10px;border-radius:8px;font:11px system-ui;cursor:pointer;">Improve</button>
+        <button id="gc-check" class="gc-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 10px;border-radius:8px;font:11px system-ui;cursor:pointer;">Human-Tone</button>
+        <button id="gc-check-pro" class="gc-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 10px;border-radius:8px;font:11px system-ui;cursor:pointer;">Professional-Tone</button>
         <button id="gc-copy"  class="gc-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 10px;border-radius:8px;font:11px system-ui;cursor:pointer;">Copy</button>
       </div>
       <span id="gc-source" style="font-size:10px;opacity:.8;">source: —</span>
@@ -146,6 +147,7 @@
   const btnMonitor = panel.querySelector("#gc-monitor");
   const btnClose   = panel.querySelector("#gc-close");
   const btnCheck   = panel.querySelector("#gc-check");
+  const btnCheckPro = panel.querySelector("#gc-check-pro");
   const btnCopy    = panel.querySelector("#gc-copy");
   const textEl     = panel.querySelector("#gc-text");
   const srcEl      = panel.querySelector("#gc-source");
@@ -183,7 +185,26 @@
     if (!text) return;
     setSource("…");
     setText("Reframing...");
-    chrome.runtime.sendMessage({ type: "GRAMMAR_CHECK", text }, async (resp) => {
+    chrome.runtime.sendMessage({ type: "GRAMMAR_CHECK", text, mode:"Human" }, async (resp) => {
+      if (!resp) { setText("ERROR: No response"); setSource("—"); return; }
+      if (resp.ok) {
+        setText(resp.corrected);
+        setSource(resp.source === "openai" ? "GPT" : resp.source === "proxy" ? "Proxy" : "Mock");
+        STATE.monitoring = false;
+        await chrome.storage.local.set({ monitoring: false });
+        reflectMonitor();
+      } else {
+        setText(`ERROR: ${resp.error || "failed"}`); setSource("—");
+      }
+    });
+  };
+
+  btnCheckPro.onclick = () => {
+    const text = textEl.value.trim();
+    if (!text) return;
+    setSource("…");
+    setText("Reframing...");
+    chrome.runtime.sendMessage({ type: "GRAMMAR_CHECK", text, mode:"Professional" }, async (resp) => {
       if (!resp) { setText("ERROR: No response"); setSource("—"); return; }
       if (resp.ok) {
         setText(resp.corrected);
