@@ -180,40 +180,80 @@
     reflectMonitor();
   };
 
-  btnCheck.onclick = () => {
+  btnCheck.onclick = async () => {
     const text = textEl.value.trim();
     if (!text) return;
     setSource("…");
-    setText("Reframing...");
-    chrome.runtime.sendMessage({ type: "GRAMMAR_CHECK", text, mode:"Human" }, async (resp) => {
-      if (!resp) { setText("ERROR: No response"); setSource("—"); return; }
-      if (resp.ok) {
-        setText(resp.corrected);
-        setSource(resp.source === "openai" ? "GPT" : resp.source === "proxy" ? "Proxy" : "Mock");
+    setText("");
+    
+    // Create a port for streaming communication
+    const port = chrome.runtime.connect({ name: "grammar-stream" });
+    
+    port.postMessage({ type: "GRAMMAR_CHECK_STREAM", text, mode: "Human" });
+    
+    let accumulatedText = "";
+    
+    port.onMessage.addListener((msg) => {
+      if (msg.type === "STREAM_CHUNK") {
+        // Append new chunk
+        accumulatedText += msg.chunk;
+        setText(accumulatedText);
+      } else if (msg.type === "STREAM_DONE") {
+        setSource(msg.source === "openai" ? "GPT" : msg.source === "proxy" ? "Proxy" : "Mock");
         STATE.monitoring = false;
-        await chrome.storage.local.set({ monitoring: false });
+        chrome.storage.local.set({ monitoring: false });
         reflectMonitor();
-      } else {
-        setText(`ERROR: ${resp.error || "failed"}`); setSource("—");
+        port.disconnect();
+      } else if (msg.type === "STREAM_ERROR") {
+        setText(`ERROR: ${msg.error || "failed"}`);
+        setSource("—");
+        port.disconnect();
+      }
+    });
+    
+    port.onDisconnect.addListener(() => {
+      if (!accumulatedText) {
+        setText("ERROR: Connection lost");
+        setSource("—");
       }
     });
   };
 
-  btnCheckPro.onclick = () => {
+  btnCheckPro.onclick = async () => {
     const text = textEl.value.trim();
     if (!text) return;
     setSource("…");
-    setText("Reframing...");
-    chrome.runtime.sendMessage({ type: "GRAMMAR_CHECK", text, mode:"Professional" }, async (resp) => {
-      if (!resp) { setText("ERROR: No response"); setSource("—"); return; }
-      if (resp.ok) {
-        setText(resp.corrected);
-        setSource(resp.source === "openai" ? "GPT" : resp.source === "proxy" ? "Proxy" : "Mock");
+    setText("");
+    
+    // Create a port for streaming communication
+    const port = chrome.runtime.connect({ name: "grammar-stream" });
+    
+    port.postMessage({ type: "GRAMMAR_CHECK_STREAM", text, mode: "Professional" });
+    
+    let accumulatedText = "";
+    
+    port.onMessage.addListener((msg) => {
+      if (msg.type === "STREAM_CHUNK") {
+        // Append new chunk
+        accumulatedText += msg.chunk;
+        setText(accumulatedText);
+      } else if (msg.type === "STREAM_DONE") {
+        setSource(msg.source === "openai" ? "GPT" : msg.source === "proxy" ? "Proxy" : "Mock");
         STATE.monitoring = false;
-        await chrome.storage.local.set({ monitoring: false });
+        chrome.storage.local.set({ monitoring: false });
         reflectMonitor();
-      } else {
-        setText(`ERROR: ${resp.error || "failed"}`); setSource("—");
+        port.disconnect();
+      } else if (msg.type === "STREAM_ERROR") {
+        setText(`ERROR: ${msg.error || "failed"}`);
+        setSource("—");
+        port.disconnect();
+      }
+    });
+    
+    port.onDisconnect.addListener(() => {
+      if (!accumulatedText) {
+        setText("ERROR: Connection lost");
+        setSource("—");
       }
     });
   };
