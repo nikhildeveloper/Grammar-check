@@ -1,12 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Universal Input Text Detector",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Capture highlighted text and grammar-check it.",
-  "action": { "default_title": "Toggle input detector" },
+  "action": { 
+    "default_popup": "popup.html",
+    "default_title": "Grammar Check" 
+  },
   "permissions": ["storage", "scripting", "activeTab", "contextMenus"],
   "host_permissions": ["<all_urls>"],
-  "background": { "service_worker": "service_worker.js" },
+  "background": {
+    "service_worker": "service_worker.js"
+  },
   "options_page": "options.html",
   "content_scripts": [
     {
